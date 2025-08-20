@@ -1,38 +1,102 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 .App {
-  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.map-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+/* Override default map component styles */
+arcgis-map {
+  display: block;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.mapDiv {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.myMap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Global button styles */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+button:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+/* Directions container styling */
+#directions-container {
+  max-height: 50vh;
+  width: 25vw;
+  overflow-y: auto;
+}
+
+#directions-notice {
+  max-width: 25vw;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .App {
+    font-size: 14px;
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+/* Loading indicator */
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #007acc;
+  font-size: 1.2em;
+  z-index: 2000;
+}
+
+/* Error message */
+.error-message {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #dc3545;
   color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 2000;
+  font-size: 0.9em;
 }

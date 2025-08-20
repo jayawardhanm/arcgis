@@ -1,13 +1,15 @@
+@import "https://js.arcgis.com/calcite-components/3.2.1/calcite.css";
+@import "https://js.arcgis.com/4.33/@arcgis/core/assets/esri/themes/light/main.css";
+@import "https://js.arcgis.com/4.33/map-components/main.css";
+
+#root,
+html,
 body {
+  height: 100%;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+arcgis-map {
+  display: block;
+  height: 100vh;
 }
