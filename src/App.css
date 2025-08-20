@@ -174,45 +174,9 @@ arcgis-map {
   }
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .app-header {
-    background: #000;
-    border-bottom: 2px solid #fff;
-  }
-  
-  .status-loading,
-  .status-ready,
-  .status-calculating {
-    font-weight: 700;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .status-calculating::before {
-    animation: none;
-  }
-  
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
 /* Focus management */
 button:focus,
 [role="button"]:focus {
   outline: 2px solid #007ac3;
   outline-offset: 2px;
-}
-
-/* Print styles */
-@media print {
-  .app-header {
-    background: #000 !important;
-    color: #fff !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
 }

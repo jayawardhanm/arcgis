@@ -21,7 +21,7 @@ export const useMapGraphics = () => {
       symbol: new SimpleMarkerSymbol(symbolConfig),
       geometry: point,
       attributes: {
-        type: type, // Mark this graphic with its type
+        type: type,
         isRouteMarker: true
       }
     });
@@ -30,7 +30,7 @@ export const useMapGraphics = () => {
     setRouteGraphics(prev => [...prev, { type, graphic, point }]);
   }, []);
 
-  const clearRouteGraphics = useCallback((mapView) => {
+  const clearGraphics = useCallback((mapView) => {
     if (mapView) {
       // Remove only route-related graphics, keep the default marker
       const graphicsToRemove = mapView.graphics.items.filter(graphic => 
@@ -64,7 +64,7 @@ export const useMapGraphics = () => {
     isRouteActive,
     setIsRouteActive,
     addGraphic,
-    clearGraphics: clearRouteGraphics,
+    clearGraphics,
     getRouteMarkerCount,
     removeLastGraphic
   };

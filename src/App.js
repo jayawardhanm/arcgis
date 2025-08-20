@@ -31,6 +31,7 @@ function App() {
   
   // Custom hooks
   const {
+    routeGraphics,
     isRouteActive,
     setIsRouteActive,
     addGraphic,
@@ -50,23 +51,28 @@ function App() {
   const handleMapClick = useCallback((mapPoint, mapViewInstance) => {
     if (!mapViewInstance || !mapPoint) return;
 
-    const currentMarkerCount = getRouteMarkerCount();
+    // Use the same logic as your original - count route markers directly from the map
+    const routeMarkers = mapViewInstance.graphics.items.filter(graphic => 
+      graphic.attributes && graphic.attributes.isRouteMarker
+    );
 
-    if (currentMarkerCount === 0) {
+    console.log('Current route markers on map:', routeMarkers.length);
+
+    if (routeMarkers.length === 0) {
       // First click - add origin point
       addGraphic("origin", mapPoint, mapViewInstance);
-    } else if (currentMarkerCount === 1) {
+    } else if (routeMarkers.length === 1) {
       // Second click - add destination and calculate route
       addGraphic("destination", mapPoint, mapViewInstance);
       setIsRouteActive(true);
       calculateRoute(mapViewInstance);
     } else {
-      // Third click - reset and start over
+      // Third click - reset and start over (like your original)
       clearGraphics(mapViewInstance);
       clearRoute();
       addGraphic("origin", mapPoint, mapViewInstance);
     }
-  }, [addGraphic, calculateRoute, clearGraphics, clearRoute, setIsRouteActive, getRouteMarkerCount]);
+  }, [addGraphic, calculateRoute, clearGraphics, clearRoute, setIsRouteActive]);
 
   // Handle map ready event
   const handleMapReady = useCallback((mapViewInstance, mapElement) => {
