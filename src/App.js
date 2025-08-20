@@ -1,171 +1,144 @@
-import React from 'react';
-import './App.css';
-import ReactDOM from 'react-dom';
-import "@arcgis/map-components/dist/components/arcgis-map";
-import "@arcgis/map-components/dist/components/arcgis-zoom";
-import "@arcgis/map-components/dist/components/arcgis-placement";
-import "@esri/calcite-components/dist/components/calcite-panel";
-import "@esri/calcite-components/dist/components/calcite-notice";
+import React, { useState, useEffect, useCallback } from 'react';
 import { setAssetPath } from "@esri/calcite-components/dist/components";
-import Graphic from "@arcgis/core/Graphic.js";
-import FeatureLayer from '@arcgis/core/layers/FeatureLayer.js';
-import * as route from "@arcgis/core/rest/route.js";
-import RouteParameters from "@arcgis/core/rest/support/RouteParameters.js";
-import FeatureSet from "@arcgis/core/rest/support/FeatureSet.js";
-import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol.js";
-import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol.js";
+import "@arcgis/map-components/dist/components/arcgis-placement";
+
+// Components
+import MapComponent from './components/MapComponent';
+import DirectionsPanel from './components/DirectionsPanel';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Hooks
+import { useMapGraphics } from './hooks/useMapGraphics';
+import { useRouting } from './hooks/useRouting';
+
+// Constants
+import { CONFIG } from './constants/config';
+
+// Styles
+import './App.css';
 
 // Set the asset path for Calcite components
-setAssetPath("https://cdn.jsdelivr.net/npm/@esri/calcite-components/dist/calcite/assets");
+setAssetPath(CONFIG.CALCITE_ASSETS_PATH);
 
+/**
+ * Main Application Component
+ * GIS Route Planning Application with ArcGIS Maps SDK
+ */
 function App() {
-  const routeUrl =
-        "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World";
-
+  // State management
+  const [mapView, setMapView] = useState(null);
+  const [isMapReady, setIsMapReady] = useState(false);
   
-  async function getRoute(mapView){
-    const routeParams = new RouteParameters({
-      stops: new FeatureSet({
-        features:mapView.graphics.toArray(),
-    }),
-      returnDirections: true,
-  });
+  // Custom hooks
+  const {
+    isRouteActive,
+    setIsRouteActive,
+    addGraphic,
+    clearGraphics,
+    getRouteMarkerCount
+  } = useMapGraphics();
+  
+  const {
+    isCalculating,
+    routeError,
+    directions,
+    calculateRoute,
+    clearRoute
+  } = useRouting();
 
-    try{
-      const response = await route.solve(routeUrl, routeParams);
-      response.routeResults.forEach((results)=>{
-        results.route.symbol = new SimpleLineSymbol({
-          color : [5, 150, 255],
-          width : 3,
-        });
-        mapView.graphics.add(results.route);
-      });
-          if (response.routeResults.length > 0) {
-            const directions = document.createElement("calcite-list");
+  // Handle map click events
+  const handleMapClick = useCallback((mapPoint, mapViewInstance) => {
+    if (!mapViewInstance || !mapPoint) return;
 
-            const features = response.routeResults[0].directions.features;
-            features.forEach((feature, index) => {
-              const direction = document.createElement("calcite-list-item");
+    const currentMarkerCount = getRouteMarkerCount();
 
-              const step = document.createElement("span");
-              step.innerText = `${index + 1}.`;
-              step.slot = "content-start";
-              step.style.marginLeft = "10px";
-              direction.appendChild(step);
-
-              direction.label = `${feature.attributes.text}`;
-              direction.description = `${feature.attributes.length.toFixed(2)} miles`;
-              directions.appendChild(direction);
-            });
-
-            document.querySelector("#directions-container").appendChild(directions);
-          }
-    } catch(error){
-      console.error("Error getting route:", error);
+    if (currentMarkerCount === 0) {
+      // First click - add origin point
+      addGraphic("origin", mapPoint, mapViewInstance);
+    } else if (currentMarkerCount === 1) {
+      // Second click - add destination and calculate route
+      addGraphic("destination", mapPoint, mapViewInstance);
+      setIsRouteActive(true);
+      calculateRoute(mapViewInstance);
+    } else {
+      // Third click - reset and start over
+      clearGraphics(mapViewInstance);
+      clearRoute();
+      addGraphic("origin", mapPoint, mapViewInstance);
     }
-  }
+  }, [addGraphic, calculateRoute, clearGraphics, clearRoute, setIsRouteActive, getRouteMarkerCount]);
 
-  function addGraphic(type, point, mapView) {
-            const graphic = new Graphic({
-          symbol: new SimpleMarkerSymbol({
-            color: type === "origin" ? "white" : "black",
-            size: "8px",
-          }),
-          geometry: point,
-        });
-    mapView.graphics.add(graphic);
-  }
-  const handleViewReady = (event) => {
-    const viewElement = event.target;
-    
-    var esriConfig = {
-    apiKey: "AAPTxy8BH1VEsoebNVZXo8HurLn3M0o6rZcFRtCivb6l7ukvq1liE9WG0qWX1M7-j_dkBOZCtjg20S1yxm48ryHmGH2HQtDNR5LfAtNjWM_yxaxjy4EHaekNJ4Sabq2_4xPlUD-BuHsfgsPtXHo8tAXjydqNWd1zIcac9AxlvakO_9dMwQMZLxzmV1LpHY-lWAoGugYIefIAJ2JMcrI0m64gmqpTsCr3rj0OePORtPorGeE.AT1_a6NpXGel",
-  };
-    const point = {
-      type: "point",
-      longitude: -118.38,
-      latitude: 33.34,
+  // Handle map ready event
+  const handleMapReady = useCallback((mapViewInstance, mapElement) => {
+    setMapView(mapViewInstance);
+    setIsMapReady(true);
+  }, []);
+
+  // Handle clear route action
+  const handleClearRoute = useCallback(() => {
+    if (mapView) {
+      clearGraphics(mapView);
+      clearRoute();
+    }
+  }, [mapView, clearGraphics, clearRoute]);
+
+  // Handle errors
+  const handleError = useCallback((error, errorInfo) => {
+    console.error('Application Error:', error, errorInfo);
+    // Here you could send error to monitoring service
+  }, []);
+
+  // Effect for keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.key === 'Escape' && mapView) {
+        handleClearRoute();
+      }
     };
 
-    const markerSymbol = {
-      type: "simple-marker",
-      style: "triangle",
-      size: 15,
-      color: "red",
-      outline: {
-        color: "white",
-        width: 2,
-      },
-    };
-
-    const pointGraphic = new Graphic({
-      geometry: point,
-      symbol: markerSymbol,
-    });
-
-    const trailheadsLayer = new FeatureLayer({
-      url:"https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0"
-    });
-
-    const trailsLayer = new FeatureLayer({
-          url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trails/FeatureServer/0",
-        });
-
-     const parksLayer = new FeatureLayer({
-          url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Parks_and_Open_Space/FeatureServer/0",
-        });
-
-    // Add the trailheads layer to the map
-    viewElement.map.add(trailheadsLayer);
-    viewElement.map.add(trailsLayer,0);
-    viewElement.map.add(parksLayer,0);
-
-    viewElement.graphics.add(pointGraphic);
-    
-    // Wait for the view to be ready before setting up click handler
-    viewElement.view.when(() => {
-      const mapView = viewElement.view;
-      
-      viewElement.addEventListener("arcgisViewClick", (event) => {
-        const directionsNotice = document.querySelector("#direction-notice");
-        if (viewElement.view.graphics.length === 0) {
-          addGraphic("origin", event.detail.mapPoint, mapView);
-        } else if (viewElement.view.graphics.length === 1) {
-          directionsNotice.open = false;
-          addGraphic("destination", event.detail.mapPoint, mapView);
-          getRoute(mapView);
-        } else {
-          viewElement.view.graphics.removeAll();
-          directionsNotice.open = true;
-          document.querySelector("#directions-container").innerHTML = "";
-          addGraphic("origin", event.detail.mapPoint, mapView);
-        }
-      });
-    }).catch((error) => {
-      console.error("Error setting up map view:", error);
-    });
-  };
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [mapView, handleClearRoute]);
 
   return (
-    <div className="App">
-      <arcgis-map 
-        basemap="streets-navigation-vector" 
-        zoom="12" 
-        center="-118.43,34.22"
-        onarcgisViewReadyChange={handleViewReady}
-        style={{ height: "100vh" }}
-      >
-        <arcgis-zoom position="top-left" />
-        <arcgis-placement position ="top-right">
-          <calcite-panel heading="Directions">
-            <calcite-notice id="direction-notice" icon="driving-distance">
-              <div slot="message">Click on the map in two different locations to solve the route.</div>
-            </calcite-notice>
-            <div id="directions-container"></div>
-          </calcite-panel>
-        </arcgis-placement>
-      </arcgis-map>
-    </div>
+    <ErrorBoundary onError={handleError}>
+      <div className="app">
+        <header className="app-header">
+          <h1 className="app-title">GIS Route Planner</h1>
+          <div className="app-status">
+            {!isMapReady && <span className="status-loading">Loading map...</span>}
+            {isMapReady && !isRouteActive && (
+              <span className="status-ready">Click on map to start routing</span>
+            )}
+            {isCalculating && <span className="status-calculating">Calculating route...</span>}
+          </div>
+        </header>
+
+        <main className="app-main">
+          <MapComponent 
+            onMapClick={handleMapClick}
+            onMapReady={handleMapReady}
+          >
+            <arcgis-placement position="top-right">
+              <DirectionsPanel
+                directions={directions}
+                isCalculating={isCalculating}
+                routeError={routeError}
+                onClearRoute={handleClearRoute}
+                showInstructions={directions.length > 0}
+              />
+            </arcgis-placement>
+          </MapComponent>
+        </main>
+
+        {/* Accessibility info */}
+        <div className="sr-only" aria-live="polite">
+          {isCalculating && "Calculating route, please wait"}
+          {routeError && `Route error: ${routeError}`}
+          {directions.length > 0 && `Route calculated with ${directions.length} steps`}
+        </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 
